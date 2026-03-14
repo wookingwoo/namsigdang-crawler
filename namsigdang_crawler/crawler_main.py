@@ -9,6 +9,7 @@ import traceback
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+
 # from selenium.webdriver.support import expected_conditions as EC
 # from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
@@ -34,18 +35,30 @@ def def_sleep(sleep_time_def=1.2):
 def basic_error_msg(error_code, detail_msg, campus_name):
     slack_msg(
         f"<!channel> *{campus_name} 식단 업데이트 중 오류가 발생했습니다.* (에러코드: {error_code})\n오류가 지속될 경우 관리자에게 문의해주세요. (contact@wookingwoo.com)",
-        status_channel)
+        status_channel,
+    )
     slack_msg(f"<!channel> *{error_code} 에러 발생*: {detail_msg}", debug_channel)
 
 
 headless_options = webdriver.ChromeOptions()
-headless_options.add_argument('--headless=new')  # 창 숨기기
-headless_options.add_argument('--no-sandbox')  # 리소스에 대한 액세스를 방지
+headless_options.add_argument("--headless")  # 창 숨기기
+headless_options.add_argument("--no-sandbox")  # 리소스에 대한 액세스를 방지
+
+# 그래픽 가속 비활성화 (일부 버전에서 크롬 GPU 버그 이슈가 있음)
+headless_options.add_argument("--disable-gpu")
+
 headless_options.add_argument("--window-size=1280x1696")
-headless_options.add_argument("--disable-dev-shm-usage")  # dev/shm을 공유하지 않음 (메모리 부족으로 인한 오류 방지)
+headless_options.add_argument("--single-process")
+
+# dev/shm을 공유하지 않음 (메모리 부족으로 인한 오류 방지)
+headless_options.add_argument("--disable-dev-shm-usage")
+
+headless_options.add_argument("--disable-dev-tools")
+headless_options.add_argument("--no-zygote")
 headless_options.add_argument("--remote-debugging-port=9222")
 headless_options.add_argument(
-    'user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36')
+    "user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36"
+)
 
 
 def get_driver_default():
@@ -67,7 +80,7 @@ def get_driver_python_docker():
 
 
 def get_driver_aws_lambda_docker():
-    headless_options.binary_location = '/opt/chrome/chrome'
+    headless_options.binary_location = "/opt/chrome/chrome"
     driver = webdriver.Chrome("/opt/chromedriver", options=headless_options)
     return driver
 
@@ -96,7 +109,6 @@ def namsigdang_crawler(chrome_driver_option, campus):
             my_firebase_document = campus_key.firebase_dongjak_document
             my_campus_name = campus_key.dongjak_campus_name
 
-
         else:
             basic_error_msg("c416", "Campus is not valid", "")
             raise Exception("Campus is not valid")
@@ -111,7 +123,9 @@ def namsigdang_crawler(chrome_driver_option, campus):
             "aws_lambda_layer": get_driver_aws_lambda_layer,
         }
 
-        driver = driver_options.get(chrome_driver_option, lambda: Exception("chrome_driver_option is not valid"))()
+        driver = driver_options.get(
+            chrome_driver_option, lambda: Exception("chrome_driver_option is not valid")
+        )()
         if isinstance(driver, Exception):
             raise driver
 
@@ -137,7 +151,9 @@ def namsigdang_crawler(chrome_driver_option, campus):
         print(f"[{my_campus_name}] 비밀번호 입력 완료")
         def_sleep()
 
-        driver.find_element(By.XPATH, element.staff_login_btn).click()  # Login 버튼 클릭
+        driver.find_element(
+            By.XPATH, element.staff_login_btn
+        ).click()  # Login 버튼 클릭
         print(f"[{my_campus_name}] 로그인 버튼 클릭 완료")
 
         def_sleep(1)
@@ -172,28 +188,30 @@ def namsigdang_crawler(chrome_driver_option, campus):
         driver.get(element.menu_url)
         print(f"[{my_campus_name}] 식단표 페이지로 이동했습니다.")
 
-        driver.find_element(By.XPATH, element.before_week_btn).click()  # 이전 주 보기 클릭
-        print(f"[{my_campus_name}] \'이전주 보기\' 클릭 완료")
+        driver.find_element(
+            By.XPATH, element.before_week_btn
+        ).click()  # 이전 주 보기 클릭
+        print(f"[{my_campus_name}] '이전주 보기' 클릭 완료")
         def_sleep(0.6)
         def_sleep()
 
         repeat = 4  # 4번 반복!!
         for i in range(repeat):
 
-            menu_html = BeautifulSoup(driver.page_source, 'html.parser')
+            menu_html = BeautifulSoup(driver.page_source, "html.parser")
 
             dic_parsing_menu = {}  # dic_menu 파일 초기화
 
-            for tr in menu_html.find_all('tr'):
-                tds = tr.find_all('td')
+            for tr in menu_html.find_all("tr"):
+                tds = tr.find_all("td")
                 if len(tds) > 0:
                     date_str = tr.th.get_text().strip()
-                    date = re.findall(r'\d+', date_str)  # 숫자만 추출
-                    date = ''.join(date)  # 리스트를 문자열로 변환
+                    date = re.findall(r"\d+", date_str)  # 숫자만 추출
+                    date = "".join(date)  # 리스트를 문자열로 변환
                     for meal_index, td in enumerate(tds):
                         if meal_index > 2:
                             raise Exception("Error occurred in parsing menu")
-                        meal = chr(ord('a') + meal_index)  # a, b, c 순서로 문자 생성
+                        meal = chr(ord("a") + meal_index)  # a, b, c 순서로 문자 생성
                         key = my_campus_key + date + meal  # key를 생성
                         dic_parsing_menu[key] = html.unescape(td.get_text().strip())
 
@@ -205,15 +223,20 @@ def namsigdang_crawler(chrome_driver_option, campus):
 
                     # firestore에 메뉴 저장
                     try:
-                        fb_ref_eun_menu = fb_db.collection('menu').document(my_firebase_document).collection(
-                            f'year_{y[2:6]}').document(f'month_{y[6:8]}')
+                        fb_ref_eun_menu = (
+                            fb_db.collection("menu")
+                            .document(my_firebase_document)
+                            .collection(f"year_{y[2:6]}")
+                            .document(f"month_{y[6:8]}")
+                        )
                         fb_ref_eun_menu.set({y: dic_parsing_menu[y]}, merge=True)
 
                     except Exception as e:
                         error = str(e)
-                        basic_error_msg("f103", "firestore에 메뉴 저장 중 에러 발생", my_campus_name)
+                        basic_error_msg(
+                            "f103", "firestore에 메뉴 저장 중 에러 발생", my_campus_name
+                        )
                         slack_msg("```\n" + error + "\n```", debug_channel)
-
 
                 else:
                     print("조건에 만족하지 않아 날짜별 DB분류에 제외하였습니다.")
@@ -224,12 +247,17 @@ def namsigdang_crawler(chrome_driver_option, campus):
             print(f"[{my_campus_name}] 날짜별로 분류해 DB에 저장하였습니다.")
 
             if len(error_dic) != 0:
-                print(f"[{my_campus_name}] --<날짜별 DB분류에 제외된 dic>--\n" + str(error_dic))
+                print(
+                    f"[{my_campus_name}] --<날짜별 DB분류에 제외된 dic>--\n"
+                    + str(error_dic)
+                )
 
             #     --------------------------------------------------------------------------------------
 
-            driver.find_element(By.XPATH, element.after_week_btn).click()  # 다음주 보기 클릭
-            print(f"\'다음주 보기\' 클릭 완료 ({i + 1}/{repeat})")
+            driver.find_element(
+                By.XPATH, element.after_week_btn
+            ).click()  # 다음주 보기 클릭
+            print(f"'다음주 보기' 클릭 완료 ({i + 1}/{repeat})")
             def_sleep(0.6)
             def_sleep()
 
@@ -239,12 +267,14 @@ def namsigdang_crawler(chrome_driver_option, campus):
         # driver.close()  # 브라우저 화면만 닫습니다.
         driver.quit()  # 브라우저를 닫고, 프로세스도 종료합니다.
 
-        slack_msg(f"[{my_campus_name}] 식단 데이터를 업데이트했습니다. (runtime: {running_time}sec)", status_channel)
-        slack_msg(f"[{my_campus_name}] 식단 데이터를 업데이트했습니다. (runtime: {running_time}sec)", debug_channel)
-
-
-
-
+        slack_msg(
+            f"[{my_campus_name}] 식단 데이터를 업데이트했습니다. (runtime: {running_time}sec)",
+            status_channel,
+        )
+        slack_msg(
+            f"[{my_campus_name}] 식단 데이터를 업데이트했습니다. (runtime: {running_time}sec)",
+            debug_channel,
+        )
 
     except Exception as e:
         error = str(e)
@@ -261,6 +291,6 @@ def run(chrome_driver_option):
     namsigdang_crawler(chrome_driver_option, "dongjak")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     chrome_driver_option = os.getenv("CHROME_DRIVER_OPTION", "default")
     run(chrome_driver_option)
