@@ -1,4 +1,7 @@
 # namsigdang crawler
+- namsigdang-crawler: https://github.com/wookingwoo/namsigdang-crawler
+- namsigdang-chatbot: https://github.com/wookingwoo/namsigdang-chatbot
+- namsigdang-android-app: https://github.com/wookingwoo/namsigdang-android-app
 
 ## Get started with Docker
 

@@ -4,10 +4,16 @@ from firebase_admin import firestore
 
 from constants.data_path import project_path
 
-fb_cred = credentials.Certificate(project_path + "/data/account/firebase_sdk_key.json")
-firebase_admin.initialize_app(fb_cred, {
-    'projectId': 'namsigdang-crawler',
-})
+fb_cred = credentials.Certificate(
+    project_path
+    + "/data/account/namsigdang-crawler-firebase-adminsdk-fbsvc-c3f9e3e036_namsigdang-crawler.json"
+)
+firebase_admin.initialize_app(
+    fb_cred,
+    {
+        "projectId": "namsigdang-crawler",
+    },
+)
 
 fb_db = firestore.client()
 
