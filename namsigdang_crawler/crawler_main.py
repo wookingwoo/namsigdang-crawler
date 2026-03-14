@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
+import os
 import re
 import time
 import html
@@ -263,6 +264,5 @@ def run(chrome_driver_option):
 
 
 if __name__ == '__main__':
-    chrome_driver_option = "default"
-    # chrome_driver_option = "python_docker"
+    chrome_driver_option = os.getenv("CHROME_DRIVER_OPTION", "default")
     run(chrome_driver_option)

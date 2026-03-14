@@ -2,9 +2,8 @@ FROM python:3.11
 
 LABEL maintainer="contact@wookingwoo.com"
 
-RUN apt-get -y update
-RUN apt install wget
-RUN apt install unzip
+RUN apt-get update
+RUN apt-get install -y wget unzip curl
 
 RUN mkdir /home/namsigdang-crawler
 
@@ -30,6 +29,8 @@ COPY ./namsigdang_crawler ./namsigdang_crawler
 
 # 컨테이너 내 프로젝트 root directory 설정
 WORKDIR /home/namsigdang-crawler/namsigdang_crawler
+
+ENV CHROME_DRIVER_OPTION=python_docker
 
 # 실행
 CMD ["python", "crawler_main.py"]
