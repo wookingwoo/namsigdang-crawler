@@ -39,14 +39,11 @@ def basic_error_msg(error_code, detail_msg, campus_name):
 
 
 headless_options = webdriver.ChromeOptions()
-headless_options.add_argument('--headless')  # 창 숨기기
+headless_options.add_argument('--headless=new')  # 창 숨기기
 headless_options.add_argument('--no-sandbox')  # 리소스에 대한 액세스를 방지
-headless_options.add_argument("--disable-gpu")  # 그래픽 가속 비활성화 (일부 버전에서 크롬 GPU 버그 이슈가 있음)
 headless_options.add_argument("--window-size=1280x1696")
-headless_options.add_argument("--single-process")
 headless_options.add_argument("--disable-dev-shm-usage")  # dev/shm을 공유하지 않음 (메모리 부족으로 인한 오류 방지)
-headless_options.add_argument("--disable-dev-tools")
-headless_options.add_argument("--no-zygote")
+headless_options.add_argument("--remote-debugging-port=9222")
 headless_options.add_argument(
     'user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36')
 
@@ -63,6 +60,7 @@ def get_driver_local():
 
 def get_driver_python_docker():
     chromedriver_docker = "/home/namsigdang-crawler/chromedriver/chromedriver"
+    headless_options.binary_location = "/usr/bin/google-chrome"
     driver = webdriver.Chrome(chromedriver_docker, options=headless_options)
 
     return driver
